@@ -7,7 +7,7 @@
 const TelegramBot = require("node-telegram-bot-api");
 const http = require("http");
 const FormData = require("form-data");
-const fetch = global.fetch || require("node-fetch");
+const fetch = require("node-fetch");
 
 /* ══════════════ إعدادات ══════════════ */
 const BOT_TOKEN = process.env.BOT_TOKEN || "8716372882:AAELsj9Sc5eDUZz9QxikcXicm0qLHyOV4q8";
@@ -81,7 +81,9 @@ async function finalizeGroup(groupId) {
       fd.append("video", buf, { filename: "video.mp4", contentType: "video/mp4" });
     }
 
-    const res = await fetch(CLOUD_FUNCTION_URL, { method: "POST", body: fd, headers: fd.getHeaders() });
+    const headers = fd.getHeaders();
+    headers["Content-Length"] = fd.getLengthSync();
+    const res = await fetch(CLOUD_FUNCTION_URL, { method: "POST", body: fd, headers });
     const data = await res.json();
 
     if (data.success) {
