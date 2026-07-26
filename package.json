@@ -1,0 +1,13 @@
+{
+  "name": "alfursan-wholesale-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "form-data": "^4.0.0",
+    "node-fetch": "^2.7.0"
+  }
+}
