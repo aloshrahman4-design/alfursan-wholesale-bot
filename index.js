@@ -15,6 +15,8 @@ const CLOUD_FUNCTION_URL =
   "https://addwholesaleproduct-799699952948.europe-west1.run.app";
 const SHARED_SECRET = "azyaa-secret-2026-x9f";
 const PORT = process.env.PORT || 10000;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 /* كل قناة: التصنيف المعروض بالموقع + رمز الترقيم التلقائي */
 const CHANNELS = {
@@ -63,16 +65,20 @@ async function finalizeGroup(groupId) {
   pendingGroups.delete(groupId);
   if (!group || !group.photos.length) return;
 
-  const { category, prefix } = CHANNELS[group.channel];
+  const { category: defaultCategory, prefix } = CHANNELS[group.channel];
   console.log(`⏳ معالجة منشور من ${group.channel}: ${group.photos.length} صورة${group.video ? " + فيديو" : ""}`);
 
   try {
+    const firstImageBuf = await downloadTelegramFile(group.photos[0]);
+    const category = await classifyImage(firstImageBuf, defaultCategory);
+
     const fd = new FormData();
     fd.append("secret", SHARED_SECRET);
     fd.append("category", category);
     fd.append("code_prefix", prefix);
 
-    for (let i = 0; i < group.photos.length; i++) {
+    fd.append("images", firstImageBuf, { filename: `img0.jpg`, contentType: "image/jpeg" });
+    for (let i = 1; i < group.photos.length; i++) {
       const buf = await downloadTelegramFile(group.photos[i]);
       fd.append("images", buf, { filename: `img${i}.jpg`, contentType: "image/jpeg" });
     }
@@ -94,6 +100,40 @@ async function finalizeGroup(groupId) {
   } catch (err) {
     console.log("❌ خطأ بمعالجة المنشور:", err.message);
   }
+}
+
+/** يستخدم Gemini Vision لتحديد تصنيف دقيق للمنتج من الصورة، مع رجوع للتصنيف الافتراضي عند أي خطأ */
+async function classifyImage(buffer, fallbackCategory) {
+  if (!GEMINI_API_KEY) return fallbackCategory;
+  try {
+    const base64 = buffer.toString("base64");
+    const prompt =
+      "شوف هذي الصورة لمنتج (حذاء، شحاطة، سليبر، أو حقيبة) وحدد تصنيف دقيق ومختصر له بالعربي " +
+      "(مثال: شحاطة أطفال، حذاء رياضي رجالي، سليبر نسائي، حقيبة يد، حذاء أطفال). " +
+      "رد بس بالتصنيف نفسه، بدون أي شرح إضافي، بجملة قصيرة (2-4 كلمات).";
+
+    const res = await fetch(GEMINI_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: "image/jpeg", data: base64 } },
+          ],
+        }],
+      }),
+    });
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (text && text.length < 40) {
+      console.log(`🧠 تصنيف Gemini: ${text}`);
+      return text;
+    }
+  } catch (err) {
+    console.log("⚠️ فشل تصنيف الصورة بالذكاء الاصطناعي:", err.message);
+  }
+  return fallbackCategory; // احتياطي عند أي فشل
 }
 
 /** يحمّل ملف من تليجرام عبر file_id ويرجعه كـ Buffer */
