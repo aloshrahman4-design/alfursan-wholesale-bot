@@ -105,7 +105,10 @@ async function finalizeGroup(groupId) {
 
 /** يستخدم Gemini Vision لتحديد تصنيف دقيق للمنتج من الصورة، مع رجوع للتصنيف الافتراضي عند أي خطأ */
 async function classifyImage(buffer, fallbackCategory) {
-  if (!GEMINI_API_KEY) return fallbackCategory;
+  if (!GEMINI_API_KEY) {
+    console.log("⚠️ GEMINI_API_KEY غير موجود بمتغيرات البيئة — استخدام التصنيف الافتراضي");
+    return fallbackCategory;
+  }
   try {
     const base64 = buffer.toString("base64");
     const prompt =
@@ -131,6 +134,7 @@ async function classifyImage(buffer, fallbackCategory) {
       console.log(`🧠 تصنيف Gemini: ${text}`);
       return text;
     }
+    console.log("⚠️ رد Gemini غير متوقع:", JSON.stringify(data).slice(0, 300));
   } catch (err) {
     console.log("⚠️ فشل تصنيف الصورة بالذكاء الاصطناعي:", err.message);
   }
