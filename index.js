@@ -8,6 +8,7 @@ const TelegramBot = require("node-telegram-bot-api");
 const http = require("http");
 const FormData = require("form-data");
 const fetch = require("node-fetch");
+const nativeFetch = global.fetch; // نستخدمه فقط لتحميل الملفات (أكثر استقراراً من node-fetch لطلبات GET البسيطة)
 
 /* ══════════════ إعدادات ══════════════ */
 const BOT_TOKEN = process.env.BOT_TOKEN || "8716372882:AAELsj9Sc5eDUZz9QxikcXicm0qLHyOV4q8";
@@ -98,7 +99,7 @@ async function finalizeGroup(groupId) {
       console.log(`❌ رفضت الدالة السحابية: ${data.error}`);
     }
   } catch (err) {
-    console.log("❌ خطأ بمعالجة المنشور:", err.message);
+    console.log("❌ خطأ بمعالجة المنشور:", err.message, "| code:", err.code || err.type || "-", "| cause:", err.cause?.message || err.cause?.code || "-");
   }
 }
 
@@ -136,13 +137,24 @@ async function classifyImage(buffer, fallbackCategory) {
   return fallbackCategory; // احتياطي عند أي فشل
 }
 
-/** يحمّل ملف من تليجرام عبر file_id ويرجعه كـ Buffer */
-async function downloadTelegramFile(fileId) {
+/** يحمّل ملف من تليجرام عبر file_id ويرجعه كـ Buffer (مع إعادة محاولة وحدة عند الفشل) */
+async function downloadTelegramFile(fileId, attempt = 1) {
   const file = await bot.getFile(fileId);
   const url = `https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`;
-  const res = await fetch(url);
-  const arrayBuf = await res.arrayBuffer();
-  return Buffer.from(arrayBuf);
+  try {
+    const doFetch = nativeFetch || fetch;
+    const res = await doFetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const arrayBuf = await res.arrayBuffer();
+    return Buffer.from(arrayBuf);
+  } catch (err) {
+    if (attempt < 3) {
+      console.log(`⚠️ محاولة تحميل ملف فشلت (${attempt})، إعادة المحاولة...`);
+      await new Promise((r) => setTimeout(r, 1000 * attempt));
+      return downloadTelegramFile(fileId, attempt + 1);
+    }
+    throw err;
+  }
 }
 
 /* ══════════════ خادم فحص صحي (Render يحتاجه + UptimeRobot) ══════════════ */
