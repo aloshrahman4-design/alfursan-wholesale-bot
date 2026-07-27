@@ -17,7 +17,7 @@ const CLOUD_FUNCTION_URL =
 const SHARED_SECRET = "azyaa-secret-2026-x9f";
 const PORT = process.env.PORT || 10000;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
 
 /* كل قناة: التصنيف المعروض بالموقع + رمز الترقيم التلقائي */
 const CHANNELS = {
