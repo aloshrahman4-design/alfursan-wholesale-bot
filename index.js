@@ -11,7 +11,7 @@ const fetch = require("node-fetch");
 const nativeFetch = global.fetch; // نستخدمه فقط لتحميل الملفات (أكثر استقراراً من node-fetch لطلبات GET البسيطة)
 
 /* ══════════════ إعدادات ══════════════ */
-const BOT_TOKEN = process.env.BOT_TOKEN || "8716372882:AAELsj9Sc5eDUZz9QxikcXicm0qLHyOV4q8";
+const BOT_TOKEN = process.env.BOT_TOKEN || "";
 const CLOUD_FUNCTION_URL =
   "https://addwholesaleproduct-799699952948.europe-west1.run.app";
 const SHARED_SECRET = "azyaa-secret-2026-x9f";
@@ -28,6 +28,10 @@ const CHANNELS = {
 };
 
 /* ══════════════ تشغيل البوت ══════════════ */
+if (!BOT_TOKEN) {
+  console.error("❌ BOT_TOKEN غير موجود بمتغيرات البيئة! أضفه من Render → Environment وأعد النشر.");
+  process.exit(1);
+}
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 console.log("✅ بوت الجملة شغّال ويستمع لـ", Object.keys(CHANNELS).length, "قنوات...");
 
