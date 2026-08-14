@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: alfursan-wholesale-bot
+    runtime: docker
+    plan: starter
+    healthCheckPath: /
+    envVars:
+      - key: WHOLESALE_BOT_TOKEN
+        sync: false
+      - key: PRICE_BOT_TOKEN
+        sync: false
+      - key: PROMO_TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: META_ACCESS_TOKEN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: META_AD_ACCOUNT_ID
+        value: "1539637770660053"
+      - key: TARGET_CHAT_ID
+        value: "132209039"
+      - key: REPORT_INTERVAL_HOURS
+        value: "2"
+      - key: GEMINI_MODEL
+        value: "gemini-3.6-flash"
+      - key: AUTH_STATE_DIR
+        value: /data/auth_state
+    disk:
+      name: whatsapp-session
+      mountPath: /data
+      sizeGB: 1

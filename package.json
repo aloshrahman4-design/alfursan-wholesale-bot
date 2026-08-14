@@ -1,13 +1,19 @@
 {
   "name": "alfursan-wholesale-bot",
-  "version": "1.0.0",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "Merged service: wholesale-bot + price-bot + promo-bot + order-status-bot, run as supervised child processes",
+  "main": "orchestrator.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
-    "start": "node index.js"
+    "start": "node orchestrator.js"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.66.0",
     "form-data": "^4.0.0",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "@whiskeysockets/baileys": "^6.7.9",
+    "qrcode": "^1.5.4"
   }
 }
