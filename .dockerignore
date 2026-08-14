@@ -1,0 +1,9 @@
+node_modules
+__pycache__
+*.pyc
+.env
+.env.*
+bots/order-status/auth_state
+auth_state
+actions.log
+.git
