@@ -21,6 +21,7 @@ const GEMINI_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-fl
 function geminiUrl(model) {
   return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 }
+
 /* كل قناة: التصنيف المعروض بالموقع + رمز الترقيم التلقائي */
 const CHANNELS = {
   AKiraq10:            { category: "أحذية وسليبرات", prefix: "ح" },
@@ -109,42 +110,45 @@ async function finalizeGroup(groupId) {
   }
 }
 
-/** يستخدم Gemini Vision لتحديد تصنيف دقيق للمنتج من الصورة، مع رجوع للتصنيف الافتراضي عند أي خطأ */
+/** يستخدم Gemini Vision لتحديد تصنيف دقيق للمنتج من الصورة، يجرب عدة موديلات بالترتيب، مع رجوع للتصنيف الافتراضي عند فشل الجميع */
 async function classifyImage(buffer, fallbackCategory) {
   if (!GEMINI_API_KEY) {
     console.log("⚠️ GEMINI_API_KEY غير موجود بمتغيرات البيئة — استخدام التصنيف الافتراضي");
     return fallbackCategory;
   }
-  try {
-    const base64 = buffer.toString("base64");
-    const prompt =
-      "شوف هذي الصورة لمنتج (حذاء، شحاطة، سليبر، أو حقيبة) وحدد تصنيف دقيق ومختصر له بالعربي " +
-      "(مثال: شحاطة أطفال، حذاء رياضي رجالي، سليبر نسائي، حقيبة يد، حذاء أطفال). " +
-      "رد بس بالتصنيف نفسه، بدون أي شرح إضافي، بجملة قصيرة (2-4 كلمات).";
+  const base64 = buffer.toString("base64");
+  const prompt =
+    "شوف هذي الصورة لمنتج (حذاء، شحاطة، سليبر، أو حقيبة) وحدد تصنيف دقيق ومختصر له بالعربي " +
+    "(مثال: شحاطة أطفال، حذاء رياضي رجالي، سليبر نسائي، حقيبة يد، حذاء أطفال). " +
+    "رد بس بالتصنيف نفسه، بدون أي شرح إضافي، بجملة قصيرة (2-4 كلمات).";
 
-    const res = await fetch(GEMINI_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: prompt },
-            { inline_data: { mime_type: "image/jpeg", data: base64 } },
-          ],
-        }],
-      }),
-    });
-    const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    if (text && text.length < 40) {
-      console.log(`🧠 تصنيف Gemini: ${text}`);
-      return text;
+  for (const model of GEMINI_MODELS) {
+    try {
+      const res = await fetch(geminiUrl(model), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              { inline_data: { mime_type: "image/jpeg", data: base64 } },
+            ],
+          }],
+        }),
+      });
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (text && text.length < 40) {
+        console.log(`🧠 تصنيف Gemini (${model}): ${text}`);
+        return text;
+      }
+      console.log(`⚠️ رد Gemini غير متوقع من ${model}:`, JSON.stringify(data).slice(0, 200));
+    } catch (err) {
+      console.log(`⚠️ فشل موديل ${model}:`, err.message);
     }
-    console.log("⚠️ رد Gemini غير متوقع:", JSON.stringify(data).slice(0, 300));
-  } catch (err) {
-    console.log("⚠️ فشل تصنيف الصورة بالذكاء الاصطناعي:", err.message);
   }
-  return fallbackCategory; // احتياطي عند أي فشل
+  console.log("⚠️ فشلت كل الموديلات — استخدام التصنيف الافتراضي");
+  return fallbackCategory;
 }
 
 /** يحمّل ملف من تليجرام عبر file_id ويرجعه كـ Buffer (مع إعادة محاولة وحدة عند الفشل) */
