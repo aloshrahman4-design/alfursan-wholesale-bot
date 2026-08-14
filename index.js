@@ -17,7 +17,10 @@ const CLOUD_FUNCTION_URL =
 const SHARED_SECRET = "azyaa-secret-2026-x9f";
 const PORT = process.env.PORT || 10000;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"];
+function geminiUrl(model) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+}
 /* كل قناة: التصنيف المعروض بالموقع + رمز الترقيم التلقائي */
 const CHANNELS = {
   AKiraq10:            { category: "أحذية وسليبرات", prefix: "ح" },
